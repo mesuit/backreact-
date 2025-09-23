@@ -1,7 +1,7 @@
 {
   "name": "Assignment Hub Backend",
   "description": "Backend for Assignment Hub - handles assignments, users, and AI integrations.",
-  "repository": "https://github.com/YOUR-USERNAME/assignment-hub-backend",
+  "repository": "https://github.com/mesuit/backreact-",
   "keywords": ["node", "express", "mongodb", "ai", "assignments"],
   "env": {
     "MONGO_URI": {
