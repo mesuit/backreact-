@@ -18,7 +18,7 @@ app.use("/api/assignments", assignmentRoutes);
 
 // Simple humaniser redirect
 app.get("/humaniser", (req, res) => {
-  res.redirect("https://your-humaniser-frontend.vercel.app");
+  res.redirect("https://humaniser-11.vercel.app/");
 });
 
 const PORT = process.env.PORT || 5000;
