@@ -12,4 +12,16 @@
   "scripts": {
     "start": "node server.js"
   }
+},
+"addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "standard-2x"
+    }
+  }
 }
