@@ -1,0 +1,15 @@
+{
+  "name": "Assignment Hub Backend",
+  "description": "Backend for Assignment Hub - handles assignments, users, and AI integrations.",
+  "repository": "https://github.com/YOUR-USERNAME/assignment-hub-backend",
+  "keywords": ["node", "express", "mongodb", "ai", "assignments"],
+  "env": {
+    "MONGO_URI": {
+      "description": "MongoDB Atlas connection string",
+      "value": "mongodb+srv://admin:<password>@cluster0.mongodb.net/assignmenthub"
+    }
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
