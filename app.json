@@ -6,14 +6,13 @@
   "env": {
     "MONGO_URI": {
       "description": "MongoDB Atlas connection string",
-      "value": "mongodb+srv://makamesco:<7F@pCdeab8T.t76>@cluster0.zxbffml.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+      "required": true
     }
   },
   "scripts": {
     "start": "node server.js"
-  }
-},
-"addons": [
+  },
+  "addons": [
     {
       "plan": "heroku-postgresql:essential-0"
     }
