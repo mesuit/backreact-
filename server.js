@@ -1,4 +1,3 @@
-
 // server.js
 import express from "express";
 import dotenv from "dotenv";
@@ -20,9 +19,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/assignments", assignmentRoutes);
+// Routes (removed /api prefix to match your frontend calls)
+app.use("/auth", authRoutes);
+app.use("/assignments", assignmentRoutes);
 
 // Simple humaniser redirect
 app.get("/humaniser", (req, res) => {
@@ -48,3 +47,4 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
