@@ -15,20 +15,31 @@ connectDB();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ✅ Middleware
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // local dev frontend
+      "https://assignment-orpin-pi-70.vercel.app", // deployed frontend on Vercel
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Routes (removed /api prefix to match your frontend calls)
-app.use("/auth", authRoutes);
-app.use("/assignments", assignmentRoutes);
+// ✅ Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/assignments", assignmentRoutes);
 
-// Simple humaniser redirect
+// Simple redirect
 app.get("/humaniser", (req, res) => {
   res.redirect("https://humaniser-11.vercel.app/");
 });
 
-// Health check (to confirm server is alive)
+// Health check
 app.get("/", (req, res) => {
   res.json({ message: "✅ Assignment Hub Backend is running!" });
 });
@@ -41,10 +52,15 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
-  res.status(500).json({ error: "Something went wrong, please try again later." });
+  res
+    .status(500)
+    .json({ error: "Something went wrong, please try again later." });
 });
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
+
 
