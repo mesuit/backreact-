@@ -7,43 +7,64 @@ import bcrypt from "bcryptjs";
 // Route imports
 import authRoutes from "./routes/authRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js"; // if you have admin routes
+import adminRoutes from "./routes/adminRoutes.js";
 
 import User from "./models/User.js";
 
 dotenv.config();
 
-// Connect to MongoDB
-connectDB().then(() => createAdmin()); // Auto-create admin after DB connection
+// ===============================
+// ✅ Connect DB + Auto-create admin
+// ===============================
+connectDB().then(() => createAdmin());
 
 const app = express();
 
-// ✅ Middleware
+// ===============================
+// ✅ CORS Setup
+// ===============================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://assignment-orpin-pi-70.vercel.app",
+  "https://react-gamma-brown-25.vercel.app", // ✅ added new frontend
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000", // local dev frontend
-      "https://assignment-orpin-pi-70.vercel.app", // deployed frontend on Vercel
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow Postman / server requests
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
+// Handle preflight OPTIONS requests
+app.options("*", cors());
+
+// ===============================
+// ✅ Middleware
+// ===============================
 app.use(express.json());
 
+// ===============================
 // ✅ Routes
+// ===============================
 app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
-app.use("/api/admin", adminRoutes); // Admin API
+app.use("/api/admin", adminRoutes);
 
-// Simple redirect
 app.get("/humaniser", (req, res) => {
   res.redirect("https://humaniser-11.vercel.app/");
 });
 
-// Health check
+// Health check route
 app.get("/", (req, res) => {
   res.json({ message: "✅ Assignment Hub Backend is running!" });
 });
@@ -61,14 +82,16 @@ app.use((err, req, res, next) => {
     .json({ error: "Something went wrong, please try again later." });
 });
 
-// Start server
+// ===============================
+// ✅ Start server
+// ===============================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)
 );
 
 // ===============================
-// ✅ Create admin if not exists
+// ✅ Auto-create Admin if not exists
 // ===============================
 async function createAdmin() {
   try {
@@ -92,7 +115,7 @@ async function createAdmin() {
       email: ADMIN_EMAIL,
       password: hashedPassword,
       role: "admin",
-      isVerified: true, // optional
+      isVerified: true,
     });
 
     await admin.save();
@@ -101,5 +124,3 @@ async function createAdmin() {
     console.error("Error creating admin:", err);
   }
 }
-
-
