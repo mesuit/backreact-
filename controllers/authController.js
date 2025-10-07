@@ -6,30 +6,35 @@ import jwt from "jsonwebtoken";
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
+// ================================
 // Register new user
+// ================================
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   try {
     // Check if user already exists
     const exists = await User.findOne({ email });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
+    if (exists) return res.status(400).json({ message: "User already exists" });
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    // Auto-assign admin if matches ENV
+    // Default role is student
     let role = "student";
-    if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASS
-    ) {
+
+    // ✅ Auto-assign admin if email matches .env ADMIN_EMAIL
+    if (email === process.env.ADMIN_EMAIL) {
       role = "admin";
     }
 
     // Create user
-    const user = await User.create({ name, email, password: hashed, role });
+    const user = await User.create({
+      name,
+      email,
+      password: hashed,
+      role,
+    });
 
     res.json({
       _id: user._id,
@@ -45,7 +50,9 @@ export const registerUser = async (req, res) => {
   }
 };
 
+// ================================
 // Login user
+// ================================
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -55,7 +62,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,          // include role
+        role: user.role, // ✅ include role
         isVerified: user.isVerified || false,
         isSuspended: user.isSuspended || false,
         token: generateToken(user._id),
@@ -68,7 +75,9 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// ================================
 // Get user profile
+// ================================
 export const getProfile = async (req, res) => {
   res.json(req.user);
 };
