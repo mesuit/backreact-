@@ -1,17 +1,20 @@
-// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
+import bcrypt from "bcryptjs";
 
 // Route imports
 import authRoutes from "./routes/authRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js"; // if you have admin routes
+
+import User from "./models/User.js";
 
 dotenv.config();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => createAdmin()); // Auto-create admin after DB connection
 
 const app = express();
 
@@ -33,6 +36,7 @@ app.use(express.json());
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/admin", adminRoutes); // Admin API
 
 // Simple redirect
 app.get("/humaniser", (req, res) => {
@@ -62,5 +66,40 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)
 );
+
+// ===============================
+// ✅ Create admin if not exists
+// ===============================
+async function createAdmin() {
+  try {
+    const { ADMIN_EMAIL, ADMIN_PASS } = process.env;
+
+    if (!ADMIN_EMAIL || !ADMIN_PASS) {
+      console.warn("⚠️ ADMIN_EMAIL or ADMIN_PASS not set in .env");
+      return;
+    }
+
+    const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
+    if (existingAdmin) {
+      console.log("Admin already exists ✅");
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(ADMIN_PASS, 10);
+
+    const admin = new User({
+      name: "Admin",
+      email: ADMIN_EMAIL,
+      password: hashedPassword,
+      role: "admin",
+      isVerified: true, // optional
+    });
+
+    await admin.save();
+    console.log("Admin created successfully ✅");
+  } catch (err) {
+    console.error("Error creating admin:", err);
+  }
+}
 
 
