@@ -1,18 +1,24 @@
-const express = require("express");
+import express from "express";
+import {
+  getProfile,
+  getAssignments,
+  acceptAssignment,
+  startVerification,
+} from "../controllers/earnController.js";
+import { protect } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
-const { authMiddleware } = require("../middleware/authMiddleware");
-const earnController = require("../controllers/earnController");
 
-// User profile & wallet
-router.get("/me", authMiddleware, earnController.getProfile);
+// GET /api/earn/me → fetch user wallet + referral + verification info
+router.get("/me", protect, getProfile);
 
-// Fetch assignments (local/international)
-router.get("/assignments", authMiddleware, earnController.getAssignments);
+// GET /api/earn/assignments?type=local → fetch assignments
+router.get("/assignments", protect, getAssignments);
 
-// Accept an assignment
-router.post("/assignments/:id/accept", authMiddleware, earnController.acceptAssignment);
+// POST /api/earn/assignments/:id/accept → accept an assignment
+router.post("/assignments/:id/accept", protect, acceptAssignment);
 
-// Start verification payment (demo)
-router.post("/pay/verification", authMiddleware, earnController.startVerification);
+// POST /api/earn/pay/verification → start verification payment
+router.post("/pay/verification", protect, startVerification);
 
-module.exports = router;
+export default router;
