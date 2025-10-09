@@ -1,14 +1,15 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import connectDB from "./config/db.js";
 import bcrypt from "bcryptjs";
+import connectDB from "./config/db.js";
 
 // Route imports
 import authRoutes from "./routes/authRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
+// Models
 import User from "./models/User.js";
 
 dotenv.config();
@@ -26,16 +27,17 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
-  "https://react-gamma-brown-25.vercel.app", // ✅ added new frontend
+  "https://react-gamma-brown-25.vercel.app", // ✅ new frontend
 ];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow Postman / server requests
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow mobile/Postman
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.warn(`❌ Blocked by CORS: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -45,7 +47,7 @@ app.use(
   })
 );
 
-// Handle preflight OPTIONS requests
+// Handle preflight OPTIONS requests globally
 app.options("*", cors());
 
 // ===============================
@@ -60,26 +62,27 @@ app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
 
+// ✅ Frontend redirection route
 app.get("/humaniser", (req, res) => {
   res.redirect("https://humaniser-11.vercel.app/");
 });
 
-// Health check route
+// ✅ Health check
 app.get("/", (req, res) => {
   res.json({ message: "✅ Assignment Hub Backend is running!" });
 });
 
-// Handle unknown routes
+// ✅ 404 Handler
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// Global error handler
+// ✅ Global Error Handler
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
-  res
-    .status(500)
-    .json({ error: "Something went wrong, please try again later." });
+  res.status(500).json({
+    error: "Something went wrong, please try again later.",
+  });
 });
 
 // ===============================
@@ -104,23 +107,24 @@ async function createAdmin() {
 
     const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
     if (existingAdmin) {
-      console.log("Admin already exists ✅");
+      console.log("✅ Admin already exists:", ADMIN_EMAIL);
       return;
     }
 
     const hashedPassword = await bcrypt.hash(ADMIN_PASS, 10);
 
     const admin = new User({
-      name: "Admin",
+      name: "Super Admin",
       email: ADMIN_EMAIL,
       password: hashedPassword,
       role: "admin",
+      isAdmin: true, // ✅ add this flag
       isVerified: true,
     });
 
     await admin.save();
-    console.log("Admin created successfully ✅");
+    console.log(`✅ Admin created successfully: ${ADMIN_EMAIL}`);
   } catch (err) {
-    console.error("Error creating admin:", err);
+    console.error("❌ Error creating admin:", err);
   }
 }
