@@ -15,18 +15,13 @@ export const verifyToken = (req, res, next) => {
   }
 };
 
-// ✅ Add this new middleware for admin routes
+// ✅ Admin verification
 export const verifyAdmin = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.role !== "admin") {
-      return res.status(403).json({ message: "Access denied. Admins only." });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.role !== "admin") return res.status(403).json({ message: "Admins only." });
 
     next();
   } catch (error) {
@@ -34,3 +29,6 @@ export const verifyAdmin = async (req, res, next) => {
     res.status(500).json({ message: "Server error verifying admin" });
   }
 };
+
+// ✅ For backward compatibility with older routes
+export const protect = verifyToken;
