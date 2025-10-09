@@ -1,89 +1,161 @@
-import Assignment from "../models/Assignment.js";
+// controllers/adminController.js
 import User from "../models/User.js";
+import Submission from "../models/Submission.js";
+import Assignment from "../models/Assignment.js";
+import News from "../models/News.js";
+import bcrypt from "bcryptjs";
 
-// Get all submissions (both submitted assignments and assigned ones)
+// ✅ USERS
+export const getUsers = async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const addUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Missing fields" });
+
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ error: "Email already registered" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const newUser = await User.create({ name, email, password: hashed, role });
+    res.json(newUser);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const verifyPayment = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: true },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ message: "Payment verified", user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const revokePayment = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: false },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ message: "Verification revoked", user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ✅ SUBMISSIONS
 export const getSubmissions = async (req, res) => {
   try {
-    const subs = await Assignment.find()
-      .populate("submittedBy", "name email")
-      .populate("assignedTo", "name email")
+    const subs = await Submission.find()
+      .populate("user", "name email")
       .sort({ createdAt: -1 });
     res.json(subs);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching submissions" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Get all users
-export const getUsers = async (req, res) => {
+export const updateSubmissionStatus = async (req, res) => {
   try {
-    const users = await User.find();
-    res.json(users);
+    const { status } = req.body;
+    const sub = await Submission.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!sub) return res.status(404).json({ error: "Submission not found" });
+    res.json(sub);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching users" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Post an assignment to a user
+// ✅ ASSIGNMENTS
+export const getAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find()
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+    res.json(assignments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const postAssignment = async (req, res) => {
-  const { userId, type, title, content, link, department } = req.body;
-  if (!title) return res.status(400).json({ message: "Title required" });
-
   try {
-    const assignment = new Assignment({
-      assignedTo: userId || null,
-      type: type || "local",
+    const { userId, title, content, type, link } = req.body;
+    if (!title) return res.status(400).json({ error: "Title required" });
+
+    const assignment = await Assignment.create({
+      userId: userId || null,
       title,
-      description: content,
-      link: link || "",
-      department: department || "general"
+      content,
+      type,
+      link,
     });
-    await assignment.save();
-    res.json({ message: "Assignment posted successfully", assignment });
+
+    res.json({ message: "Assignment posted", assignment });
   } catch (err) {
-    res.status(500).json({ message: "Failed to post assignment" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Verify payment
-export const verifyPayment = async (req, res) => {
+export const deleteAssignment = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.isVerified = true;
-    await user.save();
-    res.json({ message: "User payment verified", user });
+    const deleted = await Assignment.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Not found" });
+    res.json({ message: "Deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Error verifying payment" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Suspend a user
-export const suspendUser = async (req, res) => {
+// ✅ NEWS / UPDATES
+export const getNews = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.isSuspended = true;
-    await user.save();
-    res.json({ message: "User suspended", user });
+    const news = await News.find().sort({ createdAt: -1 });
+    res.json(news);
   } catch (err) {
-    res.status(500).json({ message: "Error suspending user" });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// Delete a user
-export const deleteUser = async (req, res) => {
+export const postNews = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const { title, body } = req.body;
+    if (!title || !body)
+      return res.status(400).json({ error: "Title and body required" });
 
-    // Optionally delete assignments submitted by this user
-    await Assignment.deleteMany({ submittedBy: req.params.id });
-    res.json({ message: "User deleted successfully" });
+    const item = await News.create({ title, body });
+    res.json({ message: "News posted", item });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting user" });
+    res.status(500).json({ error: err.message });
   }
 };
 
+export const deleteNews = async (req, res) => {
+  try {
+    const deleted = await News.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "News not found" });
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
