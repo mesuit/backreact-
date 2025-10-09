@@ -1,22 +1,45 @@
+// routes/adminRoutes.js
 import express from "express";
 import {
-  getSubmissions,
   getUsers,
-  postAssignment,
   verifyPayment,
-  suspendUser,
-  deleteUser,
+  revokePayment,
+  addUser,
+  getSubmissions,
+  updateSubmissionStatus,
+  getAssignments,
+  postAssignment,
+  deleteAssignment,
+  getNews,
+  postNews,
+  deleteNews,
 } from "../controllers/adminController.js";
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import { verifyToken, verifyAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All admin routes are protected + admin-only
-router.get("/submissions", protect, adminOnly, getSubmissions);
-router.get("/users", protect, adminOnly, getUsers);
-router.post("/assignments", protect, adminOnly, postAssignment);
-router.post("/verify-payment/:id", protect, adminOnly, verifyPayment);
-router.post("/suspend-user/:id", protect, adminOnly, suspendUser);
-router.delete("/delete-user/:id", protect, adminOnly, deleteUser);
+// All admin routes protected
+router.use(verifyToken, verifyAdmin);
+
+// 👤 User management
+router.get("/users", getUsers);
+router.post("/add-user", addUser);
+router.post("/verify-payment/:id", verifyPayment);
+router.post("/revoke-payment/:id", revokePayment);
+
+// 📝 Submissions
+router.get("/submissions", getSubmissions);
+router.post("/submission-status/:id", updateSubmissionStatus);
+
+// 📚 Assignments
+router.get("/assignments", getAssignments);
+router.post("/post-assignment", postAssignment);
+router.delete("/assignments/:id", deleteAssignment);
+
+// 📰 News / Updates
+router.get("/news", getNews);
+router.post("/post-news", postNews);
+router.delete("/news/:id", deleteNews);
 
 export default router;
+
