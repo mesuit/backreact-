@@ -22,19 +22,20 @@ connectDB().then(() => createAdmin());
 const app = express();
 
 // ===============================
-// ✅ CORS Setup
+// ✅ CORS Setup (UPDATED)
 // ===============================
 const allowedOrigins = [
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
-  "https://react-dun-six-42.vercel.app/",
-  "https://react-gamma-brown-25.vercel.app", // ✅ new frontend
+  "https://react-dun-six-42.vercel.app",
+  "https://react-gamma-brown-25.vercel.app",
+  "https://react-uj2w.vercel.app", // ✅ added your new deployed frontend
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow mobile/Postman
+      if (!origin) return callback(null, true); // allow Postman & server-side
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -119,7 +120,7 @@ async function createAdmin() {
       email: ADMIN_EMAIL,
       password: hashedPassword,
       role: "admin",
-      isAdmin: true, // ✅ add this flag
+      isAdmin: true,
       isVerified: true,
     });
 
