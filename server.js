@@ -27,6 +27,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
+  "https://react-dun-six-42.vercel.app/",
   "https://react-gamma-brown-25.vercel.app", // ✅ new frontend
 ];
 
