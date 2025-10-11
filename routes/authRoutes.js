@@ -1,1 +1,29 @@
-import { registerUser, loginUser, getProfile, suspendUserAccount, verifyUserAccount, } from "../controllers/authController.js"; import { protect, verifyAdmin } from "../middleware/authMiddleware.js"; const router = express.Router(); // -------------------- // Public Routes // -------------------- router.post("/register", registerUser); router.post("/login", loginUser); // Aliases for compatibility router.post("/signup", registerUser); router.post("/signin", loginUser); // -------------------- // Protected Routes // -------------------- router.get("/profile", protect, getProfile); // -------------------- // Admin Only Routes // -------------------- router.put("/suspend/:id", protect, verifyAdmin, suspendUserAccount); router.put("/verify/:id", protect, verifyAdmin, verifyUserAccount); export default router;
+// src/routes/authRoutes.js
+import express from "express";
+import {
+  registerUser,
+  loginUser,
+  getProfile,
+  suspendUserAccount,
+  verifyUserAccount,
+  getAllUsers,
+} from "../controllers/authController.js";
+import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+// Public routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.post("/signup", registerUser);
+router.post("/signin", loginUser);
+
+// Protected routes
+router.get("/profile", protect, getProfile);
+
+// Admin only
+router.get("/users", protect, verifyAdmin, getAllUsers);
+router.put("/users/:id/verify", protect, verifyAdmin, verifyUserAccount);
+router.put("/users/:id/suspend", protect, verifyAdmin, suspendUserAccount);
+
+export default router;
