@@ -115,7 +115,7 @@ export const getProfile = async (req, res) => {
 // =======================================
 // ✅ Suspend/Unsuspend a User Account (Admin)
 // =======================================
-export const toggleSuspendUserAccount = async (req, res) => {
+export const suspendUserAccount = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -130,7 +130,7 @@ export const toggleSuspendUserAccount = async (req, res) => {
       isSuspended: user.isSuspended,
     });
   } catch (err) {
-    console.error("❌ Toggle Suspend Error:", err.message);
+    console.error("❌ Suspend Error:", err.message);
     res.status(500).json({ message: "Server error during suspension toggle" });
   }
 };
