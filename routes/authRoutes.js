@@ -3,7 +3,7 @@ import {
   registerUser,
   loginUser,
   getProfile,
-  toggleSuspendUserAccount,
+  suspendUserAccount,   // renamed for consistency
   verifyUserAccount,
   getAllUsers,
 } from "../controllers/authController.js";
@@ -17,7 +17,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-// Aliases
+// Aliases for compatibility
 router.post("/signup", registerUser);
 router.post("/signin", loginUser);
 
@@ -31,6 +31,6 @@ router.get("/profile", protect, getProfile);
 // --------------------
 router.get("/users", protect, verifyAdmin, getAllUsers);
 router.put("/users/:id/verify", protect, verifyAdmin, verifyUserAccount);
-router.put("/users/:id/suspend", protect, verifyAdmin, toggleSuspendUserAccount);
+router.put("/users/:id/suspend", protect, verifyAdmin, suspendUserAccount);
 
 export default router;
