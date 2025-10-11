@@ -11,16 +11,20 @@ import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public
+// --------------------
+// Public Routes
+// --------------------
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.post("/signup", registerUser);
-router.post("/signin", loginUser);
 
-// Protected
+// --------------------
+// Protected Routes
+// --------------------
 router.get("/profile", protect, getProfile);
 
-// Admin
+// --------------------
+// Admin Only Routes
+// --------------------
 router.get("/users", protect, verifyAdmin, getAllUsers);
 router.put("/users/:id/verify", protect, verifyAdmin, verifyUserAccount);
 router.put("/users/:id/suspend", protect, verifyAdmin, toggleSuspendUserAccount);
