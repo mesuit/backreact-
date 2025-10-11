@@ -1,9 +1,10 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// ✅ Verify JWT Token
+// ✅ Protect Route (JWT Auth)
 export const protect = async (req, res, next) => {
   let token;
+
   try {
     if (req.headers.authorization?.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
@@ -23,7 +24,7 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// ✅ Admin Role Check
+// ✅ Admin Check
 export const verifyAdmin = (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
   if (req.user.role !== "admin" && !req.user.isAdmin)
