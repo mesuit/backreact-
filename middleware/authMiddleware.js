@@ -1,21 +1,15 @@
+// src/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// --------------------
-// Protect Routes
-// --------------------
+// Protect routes
 export const protect = async (req, res, next) => {
+  let token;
   try {
-    let token;
-
-    // Check for token in Authorization header
     if (req.headers.authorization?.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Find user and attach to request
       const user = await User.findById(decoded.id).select("-password");
       if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -26,18 +20,14 @@ export const protect = async (req, res, next) => {
     }
   } catch (err) {
     console.error("❌ Protect Error:", err.message);
-    res.status(401).json({ message: "Token invalid or expired" });
+    return res.status(401).json({ message: "Token invalid or expired" });
   }
 };
 
-// --------------------
-// Admin Role Check
-// --------------------
+// Admin check
 export const verifyAdmin = (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-  if (req.user.role !== "admin" && !req.user.isAdmin) {
+  if (req.user.role !== "admin" && !req.user.isAdmin)
     return res.status(403).json({ message: "Admin access required" });
-  }
-
   next();
 };
