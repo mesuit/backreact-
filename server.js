@@ -22,36 +22,36 @@ connectDB().then(() => createAdmin());
 const app = express();
 
 // ===============================
-// ✅ CORS Setup (UPDATED)
+// ✅ CORS Setup (Robust for Browser + Frontend)
 // ===============================
 const allowedOrigins = [
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
   "https://react-dun-six-42.vercel.app",
-    "https://react-ho29.onrender.com",
+  "https://react-ho29.onrender.com",
   "https://react-gamma-brown-25.vercel.app",
-  "https://react-uj2w.vercel.app", // ✅ added your new deployed frontend
+  "https://react-uj2w.vercel.app",
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman & server-side
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`❌ Blocked by CORS: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman or server-to-server requests
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`❌ Blocked by CORS: ${origin}`);
+    return callback(null, false); // Important: false instead of Error
+  },
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
 
-// Handle preflight OPTIONS requests globally
-app.options("*", cors());
+// Handle preflight OPTIONS globally
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"]
+}));
 
 // ===============================
 // ✅ Middleware
