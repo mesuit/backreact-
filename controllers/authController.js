@@ -2,13 +2,24 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// Generate JWT token
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+// =====================================
+// ✅ Generate JWT Token with Role + Admin Flag
+// =====================================
+const generateToken = (user) =>
+  jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      isAdmin: user.role === "admin",
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" }
+  );
 
-// ================================
-// Register new user
-// ================================
+// =====================================
+// ✅ Register New User
+// =====================================
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -20,7 +31,7 @@ export const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    // Default role is student
+    // Default role is 'student'
     let role = "student";
 
     // ✅ Auto-assign admin if email matches .env ADMIN_EMAIL
@@ -36,6 +47,7 @@ export const registerUser = async (req, res) => {
       role,
     });
 
+    // Respond with token + user data
     res.json({
       _id: user._id,
       name: user.name,
@@ -43,41 +55,50 @@ export const registerUser = async (req, res) => {
       role: user.role,
       isVerified: user.isVerified || false,
       isSuspended: user.isSuspended || false,
-      token: generateToken(user._id),
+      token: generateToken(user),
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("❌ Error registering user:", err.message);
+    res.status(500).json({ message: "Server error while registering user." });
   }
 };
 
-// ================================
-// Login user
-// ================================
+// =====================================
+// ✅ Login Existing User
+// =====================================
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role, // ✅ include role
-        isVerified: user.isVerified || false,
-        isSuspended: user.isSuspended || false,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: "Invalid credentials" });
+
+    // Check password match
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    // Respond with user info + token
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified || false,
+      isSuspended: user.isSuspended || false,
+      token: generateToken(user),
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("❌ Login error:", err.message);
+    res.status(500).json({ message: "Server error while logging in." });
   }
 };
 
-// ================================
-// Get user profile
-// ================================
+// =====================================
+// ✅ Get Current User Profile
+// =====================================
 export const getProfile = async (req, res) => {
-  res.json(req.user);
+  try {
+    res.json(req.user);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching profile" });
+  }
 };
