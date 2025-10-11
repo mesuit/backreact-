@@ -7,7 +7,7 @@ import {
   verifyUserAccount,
   getAllUsers,
 } from "../controllers/authController.js";
-import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
+import { protect, verifyAdmin } from "../middleware/authMiddleware.js"; // ✅ correct exports
 
 const router = express.Router();
 
