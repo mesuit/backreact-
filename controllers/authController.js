@@ -124,3 +124,45 @@ export const getProfile = async (req, res) => {
     res.status(500).json({ message: "Error fetching profile" });
   }
 };
+
+// =======================================
+// ✅ Suspend a User Account (Admin Action)
+// =======================================
+export const suspendUserAccount = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    user.isSuspended = true;
+    await user.save();
+
+    res.json({ message: `${user.name} has been suspended successfully` });
+  } catch (err) {
+    console.error("❌ Suspend Error:", err.message);
+    res.status(500).json({ message: "Server error during suspension" });
+  }
+};
+
+// =======================================
+// ✅ Verify a User Account (Admin Action)
+// =======================================
+export const verifyUserAccount = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    user.isVerified = true;
+    await user.save();
+
+    res.json({ message: `${user.name} has been verified successfully` });
+  } catch (err) {
+    console.error("❌ Verify Error:", err.message);
+    res.status(500).json({ message: "Server error during verification" });
+  }
+};
