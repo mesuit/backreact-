@@ -20,24 +20,19 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // 1️⃣ Check if user already exists
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
-    // 2️⃣ Hash the password
     const hashed = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Default role = student
     let role = "student";
     let isAdmin = false;
 
-    // 4️⃣ Auto-assign admin if email matches ADMIN_EMAIL in .env
     if (email === process.env.ADMIN_EMAIL) {
       role = "admin";
       isAdmin = true;
     }
 
-    // 5️⃣ Create user
     const user = await User.create({
       name,
       email,
@@ -48,7 +43,6 @@ export const registerUser = async (req, res) => {
       isSuspended: false,
     });
 
-    // 6️⃣ Respond with token + profile
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -71,21 +65,17 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ Find user by email
     const user = await User.findOne({ email });
     if (!user)
       return res.status(400).json({ message: "User not found. Please register." });
 
-    // 2️⃣ Check if suspended
     if (user.isSuspended)
       return res.status(403).json({ message: "Account suspended. Contact admin." });
 
-    // 3️⃣ Validate password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid email or password" });
 
-    // 4️⃣ Return success response
     res.json({
       _id: user._id,
       name: user.name,
@@ -106,11 +96,8 @@ export const loginUser = async (req, res) => {
 // =======================================
 export const getProfile = async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
+    if (!req.user) return res.status(401).json({ message: "Not authorized" });
 
-    // Return clean user info
     res.json({
       _id: req.user._id,
       name: req.user.name,
@@ -126,36 +113,37 @@ export const getProfile = async (req, res) => {
 };
 
 // =======================================
-// ✅ Suspend a User Account (Admin Action)
+// ✅ Suspend/Unsuspend a User Account (Admin)
 // =======================================
-export const suspendUserAccount = async (req, res) => {
+export const toggleSuspendUserAccount = async (req, res) => {
   try {
     const { id } = req.params;
 
     const user = await User.findById(id);
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.isSuspended = true;
+    user.isSuspended = !user.isSuspended;
     await user.save();
 
-    res.json({ message: `${user.name} has been suspended successfully` });
+    res.json({
+      message: `${user.name} is now ${user.isSuspended ? "suspended" : "active"}`,
+      isSuspended: user.isSuspended,
+    });
   } catch (err) {
-    console.error("❌ Suspend Error:", err.message);
-    res.status(500).json({ message: "Server error during suspension" });
+    console.error("❌ Toggle Suspend Error:", err.message);
+    res.status(500).json({ message: "Server error during suspension toggle" });
   }
 };
 
 // =======================================
-// ✅ Verify a User Account (Admin Action)
+// ✅ Verify a User Account (Admin)
 // =======================================
 export const verifyUserAccount = async (req, res) => {
   try {
     const { id } = req.params;
 
     const user = await User.findById(id);
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     user.isVerified = true;
     await user.save();
@@ -164,5 +152,18 @@ export const verifyUserAccount = async (req, res) => {
   } catch (err) {
     console.error("❌ Verify Error:", err.message);
     res.status(500).json({ message: "Server error during verification" });
+  }
+};
+
+// =======================================
+// ✅ Get All Users (Admin Only)
+// =======================================
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    console.error("❌ Get All Users Error:", err.message);
+    res.status(500).json({ message: "Server error fetching users" });
   }
 };
