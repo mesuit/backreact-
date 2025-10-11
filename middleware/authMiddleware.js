@@ -2,16 +2,16 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 // =====================================
-// ✅ Middleware: Verify Token
+// ✅ Verify Token Middleware
 // =====================================
 export const verifyToken = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in Authorization header
+    // Check for "Bearer <token>" header
     if (
       req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
+      req.headers.authorization.startsWith("Bearer ")
     ) {
       token = req.headers.authorization.split(" ")[1];
     }
@@ -20,42 +20,50 @@ export const verifyToken = async (req, res, next) => {
       return res.status(401).json({ message: "No token, authorization denied" });
     }
 
-    // Verify token and extract payload
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Find user based on ID in token
+    // Find user using ID in token
     const user = await User.findById(decoded.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Attach user to request
-    req.user = user;
+    // Attach user info + role from token
+    req.user = {
+      ...user.toObject(),
+      role: decoded.role || user.role, // ✅ ensure role is present
+    };
+
     next();
   } catch (err) {
     console.error("❌ Token verification failed:", err.message);
-    return res.status(401).json({ message: "Token is not valid or expired" });
+    return res.status(401).json({ message: "Token is invalid or expired" });
   }
 };
 
 // =====================================
-// ✅ Middleware: Verify Admin Role
+// ✅ Verify Admin Role Middleware
 // =====================================
 export const verifyAdmin = (req, res, next) => {
   try {
-    if (!req.user || req.user.role !== "admin") {
+    if (!req.user) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Check role either from token or DB
+    if (req.user.role !== "admin" && req.user.isAdmin !== true) {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
+
     next();
   } catch (err) {
-    console.error("❌ Admin verification failed:", err.message);
-    return res.status(403).json({ message: "Admin access required" });
+    console.error("❌ Admin check failed:", err.message);
+    res.status(403).json({ message: "Admin access required" });
   }
 };
 
 // =====================================
-// ✅ (Optional) Middleware: Verify Logged-in User Only
+// ✅ Protect (for logged-in users only)
 // =====================================
-export const protect = (req, res, next) => {
-  verifyToken(req, res, next);
-};
+export const protect = verifyToken;
