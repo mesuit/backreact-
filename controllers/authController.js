@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 // =======================================
-// ✅ Generate JWT token with role + ID
+// ✅ Generate JWT Token (includes ID + Role)
 // =======================================
 const generateToken = (user) => {
   return jwt.sign(
@@ -14,32 +14,30 @@ const generateToken = (user) => {
 };
 
 // =======================================
-// ✅ Register new user
+// ✅ Register a New User
 // =======================================
 export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
   try {
-    // Check if user exists
+    const { name, email, password } = req.body;
+
+    // 1️⃣ Check if user already exists
     const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+    if (exists) return res.status(400).json({ message: "User already exists" });
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(password, salt);
+    // 2️⃣ Hash the password
+    const hashed = await bcrypt.hash(password, 10);
 
-    // Default role is student
+    // 3️⃣ Default role = student
     let role = "student";
     let isAdmin = false;
 
-    // Auto-assign admin if email matches .env ADMIN_EMAIL
+    // 4️⃣ Auto-assign admin if email matches ADMIN_EMAIL in .env
     if (email === process.env.ADMIN_EMAIL) {
       role = "admin";
       isAdmin = true;
     }
 
-    // Create user
+    // 5️⃣ Create user
     const user = await User.create({
       name,
       email,
@@ -47,67 +45,82 @@ export const registerUser = async (req, res) => {
       role,
       isAdmin,
       isVerified: true,
+      isSuspended: false,
     });
 
-    // Response
-    res.json({
+    // 6️⃣ Respond with token + profile
+    res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
-      isSuspended: user.isSuspended || false,
+      isSuspended: user.isSuspended,
       token: generateToken(user),
     });
   } catch (err) {
-    console.error("❌ Register error:", err);
-    res.status(500).json({ message: err.message });
+    console.error("❌ Register Error:", err.message);
+    res.status(500).json({ message: "Server error during registration" });
   }
 };
 
 // =======================================
-// ✅ Login user
+// ✅ Login Existing User
 // =======================================
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
   try {
+    const { email, password } = req.body;
+
+    // 1️⃣ Find user by email
     const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "User not found. Please register." });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+    // 2️⃣ Check if suspended
+    if (user.isSuspended)
+      return res.status(403).json({ message: "Account suspended. Contact admin." });
 
+    // 3️⃣ Validate password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid email or password" });
 
-    // Login success
+    // 4️⃣ Return success response
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
-      isSuspended: user.isSuspended || false,
+      isSuspended: user.isSuspended,
       token: generateToken(user),
     });
   } catch (err) {
-    console.error("❌ Login error:", err);
-    res.status(500).json({ message: err.message });
+    console.error("❌ Login Error:", err.message);
+    res.status(500).json({ message: "Server error during login" });
   }
 };
 
 // =======================================
-// ✅ Get logged-in user profile
+// ✅ Get Logged-In User Profile
 // =======================================
 export const getProfile = async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: "Not authorized" });
     }
-    res.json(req.user);
+
+    // Return clean user info
+    res.json({
+      _id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+      isVerified: req.user.isVerified,
+      isSuspended: req.user.isSuspended,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Profile Error:", err.message);
+    res.status(500).json({ message: "Error fetching profile" });
   }
 };
