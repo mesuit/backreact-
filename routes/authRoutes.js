@@ -3,7 +3,7 @@ import {
   registerUser,
   loginUser,
   getProfile,
-  suspendUserAccount,   // renamed for consistency
+  toggleSuspendUserAccount,
   verifyUserAccount,
   getAllUsers,
 } from "../controllers/authController.js";
@@ -11,26 +11,18 @@ import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// --------------------
-// Public Routes
-// --------------------
+// Public
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-
-// Aliases for compatibility
 router.post("/signup", registerUser);
 router.post("/signin", loginUser);
 
-// --------------------
-// Protected Routes
-// --------------------
+// Protected
 router.get("/profile", protect, getProfile);
 
-// --------------------
-// Admin Only Routes
-// --------------------
+// Admin
 router.get("/users", protect, verifyAdmin, getAllUsers);
 router.put("/users/:id/verify", protect, verifyAdmin, verifyUserAccount);
-router.put("/users/:id/suspend", protect, verifyAdmin, suspendUserAccount);
+router.put("/users/:id/suspend", protect, verifyAdmin, toggleSuspendUserAccount);
 
 export default router;
