@@ -14,15 +14,10 @@ import User from "./models/User.js";
 
 dotenv.config();
 
-// ===============================
-// ✅ Connect DB + Auto-create admin
-// ===============================
-connectDB().then(() => createAdmin());
-
 const app = express();
 
 // ===============================
-// ✅ CORS Setup (Robust for Browser + Frontend)
+// ✅ Robust CORS Setup
 // ===============================
 const allowedOrigins = [
   "http://localhost:3000",
@@ -34,29 +29,34 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman or server-to-server requests
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman & server-to-server
     if (allowedOrigins.includes(origin)) return callback(null, true);
     console.warn(`❌ Blocked by CORS: ${origin}`);
-    return callback(null, false); // Important: false instead of Error
+    return callback(null, false); // important: do not throw, just block
   },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }));
 
-// Handle preflight OPTIONS globally
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"]
-}));
+// Handle preflight globally
+app.options("*", cors());
 
 // ===============================
 // ✅ Middleware
 // ===============================
 app.use(express.json());
+
+// ===============================
+// ✅ Connect DB + Auto-create admin
+// ===============================
+connectDB()
+  .then(() => createAdmin())
+  .catch(err => {
+    console.error("❌ DB connection failed:", err);
+    process.exit(1); // stop server if DB fails
+  });
 
 // ===============================
 // ✅ Routes
@@ -65,7 +65,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ✅ Frontend redirection route
+// ✅ Frontend redirection
 app.get("/humaniser", (req, res) => {
   res.redirect("https://humaniser-11.vercel.app/");
 });
@@ -89,7 +89,7 @@ app.use((err, req, res, next) => {
 });
 
 // ===============================
-// ✅ Start server
+// ✅ Start Server
 // ===============================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
@@ -102,7 +102,6 @@ app.listen(PORT, () =>
 async function createAdmin() {
   try {
     const { ADMIN_EMAIL, ADMIN_PASS } = process.env;
-
     if (!ADMIN_EMAIL || !ADMIN_PASS) {
       console.warn("⚠️ ADMIN_EMAIL or ADMIN_PASS not set in .env");
       return;
