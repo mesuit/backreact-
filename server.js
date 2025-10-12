@@ -20,6 +20,9 @@ const app = express();
 // ✅ Robust CORS Setup
 // ===============================
 const allowedOrigins = [
+  "https://react-ho29.onrender.com",
+   "https://react-uj2w.vercel.app",
+   "https://react-dun-six-42.vercel.app",
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
   "https://react-dun-six-42.vercel.app",
@@ -28,19 +31,20 @@ const allowedOrigins = [
   "https://react-uj2w.vercel.app",
 ];
 
+// Use a function so it can dynamically allow Postman / server-to-server calls
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman & server-to-server
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser requests (Postman, curl)
     if (allowedOrigins.includes(origin)) return callback(null, true);
     console.warn(`❌ Blocked by CORS: ${origin}`);
-    return callback(null, false); // important: do not throw, just block
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }));
 
-// Handle preflight globally
+// Handle preflight OPTIONS requests globally
 app.options("*", cors());
 
 // ===============================
@@ -55,7 +59,7 @@ connectDB()
   .then(() => createAdmin())
   .catch(err => {
     console.error("❌ DB connection failed:", err);
-    process.exit(1); // stop server if DB fails
+    process.exit(1);
   });
 
 // ===============================
