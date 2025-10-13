@@ -3,24 +3,21 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Ensure uploads folder exists
-const uploadDir = "uploads";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const uploadsDir = path.join(path.resolve(), "uploads");
+
+// ✅ Ensure uploads directory exists
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Storage config
+// ✅ Configure Multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir);
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    const safeName = file.originalname
-      .replace(ext, "")
-      .replace(/\s+/g, "_")
-      .replace(/[^\w\-]/g, "");
-    cb(null, `${Date.now()}-${safeName}${ext}`);
+    cb(null, Date.now() + "-" + file.originalname.replace(/\s/g, "_"));
   },
 });
 
