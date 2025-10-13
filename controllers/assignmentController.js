@@ -1,41 +1,42 @@
+// controllers/earnController.js
 import Assignment from "../models/Assignment.js";
-import nodemailer from "nodemailer";
+import User from "../models/User.js";
 
-export const submitAssignment = async (req, res) => {
-  const { title, department, description } = req.body;
-
+// GET /api/earn/me
+export const getUserEarnData = async (req, res) => {
   try {
-    const assignment = await Assignment.create({
-      title,
-      department,
-      description,
-      submittedBy: req.user._id
+    const user = await User.findById(req.user.id);
+    res.json({
+      balance: user.balance || 0,
+      referrals: user.referrals || { count: 0, points: 0 },
     });
-
-    // Notify admin via email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.ADMIN_EMAIL, pass: process.env.ADMIN_PASS }
-    });
-
-    await transporter.sendMail({
-      from: process.env.ADMIN_EMAIL,
-      to: process.env.ADMIN_EMAIL,
-      subject: "New Assignment Submitted",
-      text: `Title: ${title}\nDepartment: ${department}\nDescription: ${description}`
-    });
-
-    res.json(assignment);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ error: "Server error loading earn data" });
   }
 };
 
+// GET /api/earn/assignments?type=local
 export const getAssignments = async (req, res) => {
   try {
-    const assignments = await Assignment.find().populate("submittedBy", "name email");
+    const { type } = req.query;
+    const assignments = await Assignment.find(type ? { type } : {});
     res.json(assignments);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching assignments" });
+  }
+};
+
+// POST /api/earn/assignments/:id/accept
+export const acceptAssignment = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment)
+      return res.status(404).json({ error: "Assignment not found" });
+
+    res.json({
+      message: `You accepted "${assignment.title}". Check your email for submission instructions.`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Error accepting assignment" });
   }
 };
