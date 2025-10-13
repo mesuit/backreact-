@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
-import { upload } from "../server.js"; // Use the Multer instance exported from server.js
+import { upload } from "../middleware/upload.js"; // ✅ FIXED
+
 import {
   getUserEarnData,
   getAssignments,
@@ -25,7 +26,7 @@ router.post(
   "/assignments/create",
   protect,
   verifyAdmin,
-  upload.single("file"), // Multer middleware
+  upload.single("file"), // ✅ Now this works fine
   createAssignment
 );
 
