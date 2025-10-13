@@ -1,15 +1,26 @@
 // middleware/upload.js
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 
-// Storage config for uploaded files
+// Ensure uploads folder exists
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Storage config
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // folder at project root
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext); // unique filename
+    const safeName = file.originalname
+      .replace(ext, "")
+      .replace(/\s+/g, "_")
+      .replace(/[^\w\-]/g, "");
+    cb(null, `${Date.now()}-${safeName}${ext}`);
   },
 });
 
