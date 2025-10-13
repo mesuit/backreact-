@@ -4,17 +4,15 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import connectDB from "./config/db.js";
 
-// Route imports
+// ✅ Route imports
 import authRoutes from "./routes/authRoutes.js";
-import assignmentRoutes from "./routes/assignmentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import earnRoutes from "./routes/earnRoutes.js"; // 👈 NEW (Learn & Earn)
+import earnRoutes from "./routes/earnRoutes.js"; // now handles assignments + earn data
 
-// Models
+// ✅ Models
 import User from "./models/User.js";
 
 dotenv.config();
-
 const app = express();
 
 // ===============================
@@ -32,7 +30,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow non-browser requests (Postman, curl)
+      if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       console.warn(`❌ Blocked by CORS: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
@@ -65,9 +63,8 @@ connectDB()
 // ✅ Routes
 // ===============================
 app.use("/api/auth", authRoutes);
-app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/earn", earnRoutes); // 👈 NEW route for Learn & Earn system
+app.use("/api/earn", earnRoutes); // 👈 now includes assignments and earnings logic
 
 // ✅ Frontend redirection
 app.get("/humaniser", (req, res) => {
