@@ -1,24 +1,29 @@
-// middleware/upload.js
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 
-const uploadsDir = path.join(path.resolve(), "uploads");
-
-// ✅ Ensure uploads directory exists
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// ✅ Configure Multer storage
+// ensure these directories exist (server.js already creates uploads)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadsDir);
+    cb(null, path.join(path.resolve(), "uploads"));
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    cb(null, Date.now() + "-" + file.originalname.replace(/\s/g, "_"));
+    const name = `${Date.now()}-${uuidv4()}${ext}`;
+    cb(null, name);
   },
 });
 
-export const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  // allow common file types; tweak as needed
+  const allowed = /pdf|doc|docx|zip|rar|txt|png|jpg|jpeg/;
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowed.test(ext)) cb(null, true);
+  else cb(new Error("Unsupported file type"), false);
+};
+
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
