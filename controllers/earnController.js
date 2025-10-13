@@ -1,102 +1,110 @@
-// controllers/earnController.js
 import Assignment from "../models/Assignment.js";
 import User from "../models/User.js";
+import path from "path";
 
-// ===============================
-// ⚙️ CREATE assignment (Admin)
-// ===============================
-export const createAssignment = async (req, res) => {
-  try {
-    const { title, description, type, link } = req.body;
-    let fileUrl = "";
-
-    if (req.file) {
-      fileUrl = `/uploads/${req.file.filename}`;
-    }
-
-    const newAssignment = await Assignment.create({
-      title,
-      description,
-      type,
-      link,
-      file: fileUrl,
-      submittedBy: req.user.id,
-    });
-
-    res.status(201).json(newAssignment);
-  } catch (error) {
-    console.error("❌ Create Assignment Error:", error);
-    res.status(500).json({ error: "Error creating assignment" });
-  }
-};
-
-// ===============================
-// 📘 GET all assignments (Admin)
-// ===============================
-export const getAllAssignments = async (req, res) => {
-  try {
-    const assignments = await Assignment.find().sort({ createdAt: -1 });
-    res.json(assignments);
-  } catch (error) {
-    console.error("❌ Get All Assignments Error:", error);
-    res.status(500).json({ error: "Error fetching all assignments" });
-  }
-};
-
-// ===============================
-// 📘 GET available assignments (Users)
-// ===============================
-export const getAssignments = async (req, res) => {
-  try {
-    const { type } = req.query;
-    const query = { status: "pending" };
-    if (type) query.type = type;
-
-    const assignments = await Assignment.find(query).sort({ createdAt: -1 });
-    res.json(assignments);
-  } catch (error) {
-    console.error("❌ Get Assignments Error:", error);
-    res.status(500).json({ error: "Error fetching assignments" });
-  }
-};
-
-// ===============================
-// 💼 ACCEPT assignment (User)
-// ===============================
-export const acceptAssignment = async (req, res) => {
-  try {
-    const assignment = await Assignment.findById(req.params.id);
-    if (!assignment)
-      return res.status(404).json({ error: "Assignment not found" });
-
-    assignment.status = "in-progress";
-    assignment.assignedTo = req.user.id;
-    await assignment.save();
-
-    res.json({
-      message: `Assignment "${assignment.title}" accepted. Check your email for instructions.`,
-      assignment,
-    });
-  } catch (error) {
-    console.error("❌ Accept Assignment Error:", error);
-    res.status(500).json({ error: "Error accepting assignment" });
-  }
-};
-
-// ===============================
-// 🔒 GET user earnings data
-// ===============================
+// GET /api/earn/me
 export const getUserEarnData = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    res.json({
-      name: user.name,
-      totalEarnings: user.earnings || 0,
-      tasksCompleted: user.acceptedAssignments?.length || 0,
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const user = await User.findById(userId).select("balance referrals email name");
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    return res.json({
+      balance: user.balance || 0,
       referrals: user.referrals || { count: 0, points: 0 },
+      email: user.email,
+      name: user.name,
     });
-  } catch (error) {
-    console.error("❌ Get User Data Error:", error);
-    res.status(500).json({ error: "Error fetching user data" });
+  } catch (err) {
+    console.error("getUserEarnData error:", err);
+    return res.status(500).json({ error: "Server error fetching user data" });
+  }
+};
+
+// GET /api/earn/assignments  (user view; optional type query)
+export const getAssignments = async (req, res) => {
+  try {
+    const type = req.query.type; // optional: local/international
+    const filter = { status: "open" };
+    if (type) filter.type = type;
+    const assignments = await Assignment.find(filter).sort({ createdAt: -1 });
+    // build fileUrl if filePath exists
+    const host = `${req.protocol}://${req.get("host")}`;
+    const data = assignments.map((a) => {
+      const obj = a.toObject();
+      if (obj.filePath) obj.fileUrl = `${host}/uploads/${path.basename(obj.filePath)}`;
+      return obj;
+    });
+    return res.json(data);
+  } catch (err) {
+    console.error("getAssignments error:", err);
+    return res.status(500).json({ error: "Failed to fetch assignments" });
+  }
+};
+
+// GET /api/earn/assignments/all  (admin view)
+export const getAllAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find().sort({ createdAt: -1 }).populate("createdBy", "name email");
+    const host = `${req.protocol}://${req.get("host")}`;
+    const data = assignments.map((a) => {
+      const obj = a.toObject();
+      if (obj.filePath) obj.fileUrl = `${host}/uploads/${path.basename(obj.filePath)}`;
+      return obj;
+    });
+    return res.json(data);
+  } catch (err) {
+    console.error("getAllAssignments error:", err);
+    return res.status(500).json({ error: "Failed to fetch all assignments" });
+  }
+};
+
+// POST /api/earn/assignments/create (admin)
+export const createAssignment = async (req, res) => {
+  try {
+    const { title, description, price, deadline, type } = req.body;
+    if (!title || !description) return res.status(400).json({ error: "Title and description required" });
+
+    const assignmentData = {
+      title,
+      description,
+      price: price ? Number(price) : 0,
+      deadline: deadline ? new Date(deadline) : undefined,
+      type: type || "local",
+      createdBy: req.user ? req.user._id : undefined,
+    };
+
+    if (req.file) {
+      // multer stored file at req.file.path
+      assignmentData.filePath = req.file.path;
+      // fileUrl will be constructed when sending to client
+    }
+
+    const assignment = await Assignment.create(assignmentData);
+    return res.status(201).json({ message: "Assignment created", assignment });
+  } catch (err) {
+    console.error("createAssignment error:", err);
+    return res.status(500).json({ error: "Failed to create assignment" });
+  }
+};
+
+// POST /api/earn/assignments/:id/accept (user accepts assignment)
+export const acceptAssignment = async (req, res) => {
+  try {
+    const assignmentId = req.params.id;
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment || assignment.status !== "open") return res.status(404).json({ error: "Assignment not available" });
+
+    // Implement your acceptance logic: create submission, notify admin, etc.
+    // For now, just respond success — extend as needed.
+    return res.json({ message: "Assignment accepted. Submit via the submission endpoint." });
+  } catch (err) {
+    console.error("acceptAssignment error:", err);
+    return res.status(500).json({ error: "Failed to accept assignment" });
   }
 };
