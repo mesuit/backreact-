@@ -1,36 +1,102 @@
-// routes/earnRoutes.js
-import express from "express";
-import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
-import { upload } from "../middleware/upload.js";
-import {
-  getUserEarnData,
-  getAssignments,
-  getAllAssignments,
-  acceptAssignment,
-  createAssignment,
-} from "../controllers/earnController.js";
+// controllers/earnController.js
+import Assignment from "../models/Assignment.js";
+import User from "../models/User.js";
 
-const router = express.Router();
+// ===============================
+// ⚙️ CREATE assignment (Admin)
+// ===============================
+export const createAssignment = async (req, res) => {
+  try {
+    const { title, description, type, link } = req.body;
+    let fileUrl = "";
 
-// 🔒 User earnings data
-router.get("/me", protect, getUserEarnData);
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
 
-// 📘 User: available assignments
-router.get("/assignments", protect, getAssignments);
+    const newAssignment = await Assignment.create({
+      title,
+      description,
+      type,
+      link,
+      file: fileUrl,
+      submittedBy: req.user.id,
+    });
 
-// 🧑‍💼 Admin: get all assignments
-router.get("/assignments/all", protect, verifyAdmin, getAllAssignments);
+    res.status(201).json(newAssignment);
+  } catch (error) {
+    console.error("❌ Create Assignment Error:", error);
+    res.status(500).json({ error: "Error creating assignment" });
+  }
+};
 
-// 🧑‍💼 Admin: create new assignment (file/link/text)
-router.post(
-  "/assignments/create",
-  protect,
-  verifyAdmin,
-  upload.single("file"),
-  createAssignment
-);
+// ===============================
+// 📘 GET all assignments (Admin)
+// ===============================
+export const getAllAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find().sort({ createdAt: -1 });
+    res.json(assignments);
+  } catch (error) {
+    console.error("❌ Get All Assignments Error:", error);
+    res.status(500).json({ error: "Error fetching all assignments" });
+  }
+};
 
-// 💼 User accepts an assignment
-router.post("/assignments/:id/accept", protect, acceptAssignment);
+// ===============================
+// 📘 GET available assignments (Users)
+// ===============================
+export const getAssignments = async (req, res) => {
+  try {
+    const { type } = req.query;
+    const query = { status: "pending" };
+    if (type) query.type = type;
 
-export default router;
+    const assignments = await Assignment.find(query).sort({ createdAt: -1 });
+    res.json(assignments);
+  } catch (error) {
+    console.error("❌ Get Assignments Error:", error);
+    res.status(500).json({ error: "Error fetching assignments" });
+  }
+};
+
+// ===============================
+// 💼 ACCEPT assignment (User)
+// ===============================
+export const acceptAssignment = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment)
+      return res.status(404).json({ error: "Assignment not found" });
+
+    assignment.status = "in-progress";
+    assignment.assignedTo = req.user.id;
+    await assignment.save();
+
+    res.json({
+      message: `Assignment "${assignment.title}" accepted. Check your email for instructions.`,
+      assignment,
+    });
+  } catch (error) {
+    console.error("❌ Accept Assignment Error:", error);
+    res.status(500).json({ error: "Error accepting assignment" });
+  }
+};
+
+// ===============================
+// 🔒 GET user earnings data
+// ===============================
+export const getUserEarnData = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.json({
+      name: user.name,
+      totalEarnings: user.earnings || 0,
+      tasksCompleted: user.acceptedAssignments?.length || 0,
+      referrals: user.referrals || { count: 0, points: 0 },
+    });
+  } catch (error) {
+    console.error("❌ Get User Data Error:", error);
+    res.status(500).json({ error: "Error fetching user data" });
+  }
+};
