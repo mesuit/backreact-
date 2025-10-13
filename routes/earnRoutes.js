@@ -1,7 +1,6 @@
-// routes/earnRoutes.js
 import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
-import { upload } from "../middleware/upload.js";
+import { protect, verifyAdmin } from "../middleware/authMiddleware.js";
+import { upload } from "../server.js"; // Use the Multer instance exported from server.js
 import {
   getUserEarnData,
   getAssignments,
@@ -19,13 +18,18 @@ router.get("/me", protect, getUserEarnData);
 router.get("/assignments", protect, getAssignments);
 
 // 🧑‍💼 Admin: get all assignments
-router.get("/assignments/all", protect, getAllAssignments);
+router.get("/assignments/all", protect, verifyAdmin, getAllAssignments);
 
 // 🧑‍💼 Admin: create new assignment (file/link/text)
-router.post("/assignments/create", protect, upload.single("file"), createAssignment);
+router.post(
+  "/assignments/create",
+  protect,
+  verifyAdmin,
+  upload.single("file"), // Multer middleware
+  createAssignment
+);
 
 // 💼 User accepts an assignment
 router.post("/assignments/:id/accept", protect, acceptAssignment);
 
 export default router;
-
