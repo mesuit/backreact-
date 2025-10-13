@@ -3,11 +3,13 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import connectDB from "./config/db.js";
+import path from "path";
+import multer from "multer";
 
 // ✅ Route imports
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import earnRoutes from "./routes/earnRoutes.js"; // now handles assignments + earn data
+import earnRoutes from "./routes/earnRoutes.js"; // assignments + earn logic
 
 // ✅ Models
 import User from "./models/User.js";
@@ -41,13 +43,29 @@ app.use(
   })
 );
 
-// Handle preflight OPTIONS requests globally
 app.options("*", cors());
 
 // ===============================
 // ✅ Middleware
 // ===============================
 app.use(express.json());
+
+// ===============================
+// ✅ File Uploads (Multer)
+// ===============================
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads"); // make sure folder exists
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, "_")}`);
+  },
+});
+export const upload = multer({ storage });
+
+// ✅ Serve uploaded files statically
+app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 // ===============================
 // ✅ Connect DB + Auto-create admin
@@ -64,7 +82,7 @@ connectDB()
 // ===============================
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/earn", earnRoutes); // 👈 now includes assignments and earnings logic
+app.use("/api/earn", earnRoutes); // assignments + earn logic
 
 // ✅ Frontend redirection
 app.get("/humaniser", (req, res) => {
