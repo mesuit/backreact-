@@ -8,6 +8,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import earnRoutes from "./routes/earnRoutes.js"; // 👈 NEW (Learn & Earn)
 
 // Models
 import User from "./models/User.js";
@@ -21,28 +22,26 @@ const app = express();
 // ===============================
 const allowedOrigins = [
   "https://react-ho29.onrender.com",
-   "https://react-uj2w.vercel.app",
-   "https://react-dun-six-42.vercel.app",
+  "https://react-uj2w.vercel.app",
+  "https://react-dun-six-42.vercel.app",
   "http://localhost:3000",
   "https://assignment-orpin-pi-70.vercel.app",
-  "https://react-dun-six-42.vercel.app",
-  "https://react-ho29.onrender.com",
   "https://react-gamma-brown-25.vercel.app",
-  "https://react-uj2w.vercel.app",
 ];
 
-// Use a function so it can dynamically allow Postman / server-to-server calls
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow non-browser requests (Postman, curl)
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn(`❌ Blocked by CORS: ${origin}`);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow non-browser requests (Postman, curl)
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      console.warn(`❌ Blocked by CORS: ${origin}`);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 
 // Handle preflight OPTIONS requests globally
 app.options("*", cors());
@@ -57,7 +56,7 @@ app.use(express.json());
 // ===============================
 connectDB()
   .then(() => createAdmin())
-  .catch(err => {
+  .catch((err) => {
     console.error("❌ DB connection failed:", err);
     process.exit(1);
   });
@@ -68,6 +67,7 @@ connectDB()
 app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/earn", earnRoutes); // 👈 NEW route for Learn & Earn system
 
 // ✅ Frontend redirection
 app.get("/humaniser", (req, res) => {
@@ -96,9 +96,7 @@ app.use((err, req, res, next) => {
 // ✅ Start Server
 // ===============================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 // ===============================
 // ✅ Auto-create Admin if not exists
