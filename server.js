@@ -4,6 +4,7 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import connectDB from "./config/db.js";
 import path from "path";
+import fs from "fs";
 import multer from "multer";
 
 // ✅ Route imports
@@ -16,6 +17,12 @@ import User from "./models/User.js";
 
 dotenv.config();
 const app = express();
+
+// ===============================
+// ✅ Ensure uploads folder exists
+// ===============================
+const uploadsDir = path.join(path.resolve(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ===============================
 // ✅ Robust CORS Setup
@@ -51,12 +58,10 @@ app.options("*", cors());
 app.use(express.json());
 
 // ===============================
-// ✅ File Uploads (Multer)
+// ✅ Multer File Upload Setup
 // ===============================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads"); // make sure folder exists
-  },
+  destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, "_")}`);
@@ -64,8 +69,8 @@ const storage = multer.diskStorage({
 });
 export const upload = multer({ storage });
 
-// ✅ Serve uploaded files statically
-app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
+// ✅ Serve uploaded files
+app.use("/uploads", express.static(uploadsDir));
 
 // ===============================
 // ✅ Connect DB + Auto-create admin
@@ -101,7 +106,7 @@ app.use((req, res) => {
 
 // ✅ Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("❌ Server Error:", err.stack);
+  console.error("❌ Server Error:", err.stack || err);
   res.status(500).json({
     error: "Something went wrong, please try again later.",
   });
@@ -131,7 +136,6 @@ async function createAdmin() {
     }
 
     const hashedPassword = await bcrypt.hash(ADMIN_PASS, 10);
-
     const admin = new User({
       name: "Super Admin",
       email: ADMIN_EMAIL,
