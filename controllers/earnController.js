@@ -1,69 +1,80 @@
-import User from "../models/User.js";
 import Assignment from "../models/Assignment.js";
+import User from "../models/User.js";
+import path from "path";
+import fs from "fs";
 
-export const getProfile = async (req, res) => {
+// ⚙️ CREATE new assignment (admin)
+export const createAssignment = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const { title, description, type, link } = req.body;
+    let fileUrl = "";
 
-    res.json({
-      balance: user.wallet || 0,
-      referrals: user.referrals || { count: 0, earnings: 0 },
-      verified: user.isVerified || false,
+    if (req.file) {
+      const filePath = `/uploads/${req.file.filename}`;
+      fileUrl = filePath;
+    }
+
+    const newAssignment = await Assignment.create({
+      title,
+      description,
+      type,
+      link,
+      file: fileUrl,
+      submittedBy: req.user.id,
     });
-  } catch (err) {
-    console.error("getProfile error:", err);
-    res.status(500).json({ error: err.message });
+
+    res.status(201).json(newAssignment);
+  } catch (error) {
+    res.status(500).json({ error: "Error creating assignment" });
   }
 };
 
+// 📘 GET all assignments (admin)
+export const getAllAssignments = async (req, res) => {
+  try {
+    const assignments = await Assignment.find().sort({ createdAt: -1 });
+    res.json(assignments);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching all assignments" });
+  }
+};
+
+// 📘 GET available assignments (for users)
 export const getAssignments = async (req, res) => {
   try {
-    const type = req.query.type || "local";
-    const assignments = await Assignment.find({ type }).sort({ createdAt: -1 });
+    const assignments = await Assignment.find({ status: "pending" }).sort({ createdAt: -1 });
     res.json(assignments);
-  } catch (err) {
-    console.error("getAssignments error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching assignments" });
   }
 };
 
-export const startVerification = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    // Mock verification (replace with M-Pesa or Stripe later)
-    user.isVerified = true;
-    await user.save();
-
-    res.json({ message: "Verification successful (demo mode)" });
-  } catch (err) {
-    console.error("startVerification error:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
+// 💼 ACCEPT assignment
 export const acceptAssignment = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await User.findById(req.user.id);
-    const assignment = await Assignment.findById(id);
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) return res.status(404).json({ message: "Assignment not found" });
 
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (!assignment)
-      return res.status(404).json({ error: "Assignment not found" });
-
-    assignment.assignedTo = user._id;
+    assignment.status = "in-progress";
+    assignment.assignedTo = req.user.id;
     await assignment.save();
 
-    user.wallet = (user.wallet || 0) + (assignment.pay || 0);
-    await user.save();
+    res.json({ message: "Assignment accepted", assignment });
+  } catch (error) {
+    res.status(500).json({ message: "Error accepting assignment" });
+  }
+};
 
-    res.json({ message: "Assignment accepted successfully" });
-  } catch (err) {
-    console.error("acceptAssignment error:", err);
-    res.status(500).json({ error: err.message });
+// 🔒 GET user earning data
+export const getUserEarnData = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate("acceptedAssignments");
+    res.json({
+      name: user.name,
+      totalEarnings: user.earnings || 0,
+      tasksCompleted: user.acceptedAssignments?.length || 0,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching user data" });
   }
 };
