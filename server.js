@@ -2,15 +2,14 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import bcrypt from "bcryptjs";
-import connectDB from "./config/db.js";
 import path from "path";
 import fs from "fs";
-import multer from "multer";
+import connectDB from "./config/db.js";
 
 // ✅ Route imports
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import earnRoutes from "./routes/earnRoutes.js"; // assignments + earn logic
+import earnRoutes from "./routes/earnRoutes.js"; // includes upload logic
 
 // ✅ Models
 import User from "./models/User.js";
@@ -51,23 +50,7 @@ app.use(
 );
 
 app.options("*", cors());
-
-// ===============================
-// ✅ Middleware
-// ===============================
 app.use(express.json());
-
-// ===============================
-// ✅ Multer File Upload Setup
-// ===============================
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, "_")}`);
-  },
-});
-export const upload = multer({ storage });
 
 // ✅ Serve uploaded files
 app.use("/uploads", express.static(uploadsDir));
@@ -89,7 +72,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/earn", earnRoutes); // assignments + earn logic
 
-// ✅ Frontend redirection
+// ✅ Frontend redirect
 app.get("/humaniser", (req, res) => {
   res.redirect("https://humaniser-11.vercel.app/");
 });
@@ -99,17 +82,11 @@ app.get("/", (req, res) => {
   res.json({ message: "✅ Assignment Hub Backend is running!" });
 });
 
-// ✅ 404 Handler
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
-// ✅ Global Error Handler
+// ✅ 404 & Global Error Handling
+app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack || err);
-  res.status(500).json({
-    error: "Something went wrong, please try again later.",
-  });
+  res.status(500).json({ error: "Something went wrong, please try again later." });
 });
 
 // ===============================
