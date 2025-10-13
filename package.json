@@ -1,7 +1,7 @@
 {
   "name": "assignment-hub-backend",
   "version": "1.0.0",
-  "description": "Backend API for Assignment Hub with user authentication, admin panel, and MongoDB integration.",
+  "description": "Backend API for Assignment Hub with user authentication, admin panel, file uploads, and MongoDB integration.",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "mongodb",
     "assignment-hub",
     "nodejs",
-    "admin-panel"
+    "admin-panel",
+    "file-upload"
   ],
   "author": "Meshack Matheka",
   "license": "MIT",
@@ -24,7 +25,8 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.8.2",
-    "nodemailer": "^6.9.15"
+    "nodemailer": "^6.9.15",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
